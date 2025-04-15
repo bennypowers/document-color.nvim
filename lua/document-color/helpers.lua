@@ -43,7 +43,7 @@ end
 --- Merge two tables
 function M.merge(...)
   local res = {}
-  for i = 1, select("#", ...) do
+  for i = 1, select('#', ...) do
     local o = select(i, ...)
     for k, v in pairs(o) do
       res[k] = v

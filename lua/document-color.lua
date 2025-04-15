@@ -1,48 +1,50 @@
-local helpers = require("document-color.helpers")
+local helpers = require'document-color.helpers'
 
 local M = {}
-local NAMESPACE = vim.api.nvim_create_namespace("lsp_documentColor")
-local METHOD =  "textDocument/documentColor"
+local NAMESPACE = vim.api.nvim_create_namespace'lsp_documentColor'
+local METHOD =  'textDocument/documentColor'
 
 local MODE_NAMES = {
-  background = "mb",
-  foreground = "mf",
-  single = "mb",
-  inlay = "il"
+  background = 'mb',
+  foreground = 'mf',
+  single = 'mb',
+  inlay = 'il'
 }
 
 local OPTIONS = {
-  mode = "background",
+  mode = 'inlay',
 }
 
-local STATE = {
-  HIGHLIGHTS = {},
-}
+local HIGHLIGHTS = {}
 
 local function create_highlight(color_info)
   local color = helpers.lsp_color_to_hex(color_info.color)
   -- This will create something like "mb_d023d9"
-  local cache_key = table.concat({ MODE_NAMES[OPTIONS.mode], color }, "_")
+  local cache_key = MODE_NAMES[OPTIONS.mode] .. '_' .. color
 
-  if STATE.HIGHLIGHTS[cache_key] then
-    return STATE.HIGHLIGHTS[cache_key]
+  if HIGHLIGHTS[cache_key] then
+    return HIGHLIGHTS[cache_key]
   end
 
   -- This will create something like "lsp_documentColor_mb_d023d9", safe to start adding to neovim
-  local highlight_name = table.concat({ "lsp_documentColor", MODE_NAMES[OPTIONS.mode], color }, "_")
+  local highlight_name = 'lsp_documentColor_' .. MODE_NAMES[OPTIONS.mode] .. '_' .. color
 
-  if OPTIONS.mode == "foreground" or OPTIONS.mode == "inlay" then
-    vim.api.nvim_set_hl(0, highlight_name, {
-      fg = "#"..color,
-    })
+  ---@type vim.api.keyset.highlight
+  local opts
+  if OPTIONS.mode == 'foreground' or OPTIONS.mode == 'inlay' then
+    opts = {
+      fg = '#'..color,
+    }
   else
-    vim.api.nvim_set_hl(0, highlight_name, {
-      fg = helpers.color_is_bright(color) and "Black" or "White",
+    opts = {
+      fg = helpers.color_is_bright(color) and 'Black' or 'White',
       bg = '#'..color
-    })
+    }
   end
 
-  STATE.HIGHLIGHTS[cache_key] = highlight_name
+  vim.api.nvim_set_hl(0, highlight_name, opts)
+
+  HIGHLIGHTS[cache_key] = highlight_name
 
   return highlight_name
 end
@@ -54,18 +56,18 @@ local function set_extmark(color_info, bufnr)
   local hl = create_highlight(color_info)
   ---@type vim.api.keyset.set_extmark
   local opts
-  if OPTIONS.mode == "inlay" then
+  if OPTIONS.mode == 'inlay' then
     opts = {
       virt_text = { { '■' , hl } },
       virt_text_pos = 'inline',
     }
-  elseif OPTIONS.mode == "background" or OPTIONS.mode == "foreground" then
+  elseif OPTIONS.mode == 'background' or OPTIONS.mode == 'foreground' then
     opts = {
       hl_group = hl,
-      end_col = color_info.range['end'].character,
-      end_row = color_info.range['end'].line,
+      end_col = range['end'].character,
+      end_row = range['end'].line,
     }
-  elseif OPTIONS.mode == "single" then
+  elseif OPTIONS.mode == 'single' then
     opts = {
       hl_group = hl,
       end_col = col + 1,
@@ -96,7 +98,6 @@ end
 ---@param client vim.lsp.Client
 ---@param bufnr number
 local function request(client, bufnr)
-  vim.notify('requesting')
   client:request(METHOD, {
     textDocument = vim.lsp.util.make_text_document_params(bufnr),
   }, nil, bufnr)
@@ -110,8 +111,7 @@ function M.on_attach(client, bufnr)
       on_lines = function() request(client, bufnr) end,
     })
 
-    -- Wait for tailwind to load. 150 to be safe
-    -- After further investiation, servers seem to be sluggish for *every* new buffer!!
+    -- sleep on lsp server startup
     vim.wait(150)
 
     -- Try again after some time
@@ -120,7 +120,7 @@ function M.on_attach(client, bufnr)
 end
 
 function M.setup(options)
-  OPTIONS = helpers.merge(OPTIONS, options)
+  OPTIONS = vim.tbl_deep_extend('force', OPTIONS, options)
   vim.lsp.handlers[METHOD] = handle_document_color
 end
 
