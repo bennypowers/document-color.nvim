@@ -39,7 +39,7 @@ For a typical LSP config,
 on_attach = function(client, bufnr)
   require'document-color'.on_attach(client, bufnr)
 end
-...
+```
 end
 
 
