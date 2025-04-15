@@ -13,7 +13,10 @@ end
 -- Ref: https://stackoverflow.com/a/1855903/837964
 -- https://stackoverflow.com/questions/596216/formula-to-determine-brightness-of-rgb-color
 -- Credit: https://github.com/kabouzeid/dotfiles/blob/main/config/nvim/lua/lsp-documentcolors.lua
-function M.color_is_bright(r, g, b)
+function M.color_is_bright(color)
+  -- TODO: Make this bit less dumb, especially since helpers.lsp_color_to_hex exists
+  local r, g, b = color:sub(1, 2), color:sub(3, 4), color:sub(5, 6) -- consider "3b82f6". `r` = "3b"
+        r, g, b = tonumber(r, 16), tonumber(g, 16), tonumber(b, 16) -- eg. Change "3b" -> "59"
   -- Counting the perceptive luminance - human eye favors green color
   local luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
   if luminance > 0.5 then
